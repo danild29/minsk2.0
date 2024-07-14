@@ -100,5 +100,7 @@ namespace Minsk.CodeAnalysis.Syntax
         ClassKeyword,
         FieldExpression,
         ObjectExpression,
+        DotToken,
+        ObjectReferenceExpression,
     }
 }

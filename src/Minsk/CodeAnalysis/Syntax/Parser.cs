@@ -408,6 +408,15 @@ namespace Minsk.CodeAnalysis.Syntax
             return ParseBinaryExpression();
         }
 
+        private ExpressionSyntax ParseObjectReference()
+        {
+            var nameExpression = ParseNameExpression();
+            var dotToken = NextToken();
+            var identifier = MatchToken(SyntaxKind.IdentifierToken);
+
+            return new ObjectReferenceExpressionSyntax(_syntaxTree, nameExpression, dotToken, identifier);
+        }
+
         private ExpressionSyntax ParseObjectInitializer()
         {
             var openBrace = NextToken();
@@ -545,6 +554,9 @@ namespace Minsk.CodeAnalysis.Syntax
 
             if (Peek(0).Kind == SyntaxKind.IdentifierToken && Peek(1).Kind == SyntaxKind.OpenSquareBraceToken)
                 return ParseArrayIndexExpression();
+
+            if (Peek(0).Kind == SyntaxKind.IdentifierToken && Peek(1).Kind == SyntaxKind.DotToken)
+                return ParseObjectReference();
 
             return ParseNameExpression();
         }

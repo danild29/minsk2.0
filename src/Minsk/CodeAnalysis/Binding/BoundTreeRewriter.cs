@@ -200,11 +200,22 @@ namespace Minsk.CodeAnalysis.Binding
                     return RewriteObjectExpression((BoundObjectExpression)node);
                 case BoundNodeKind.FieldExpression:
                     return RewriteFieldExpression((BoundFieldExpression)node);
+                case BoundNodeKind.ObjectReferenceExpression:
+                    return RewriteObjectReferenceExpression((BoundObjectReferenceExpression)node);
                 case BoundNodeKind.ConversionExpression:
                     return RewriteConversionExpression((BoundConversionExpression)node);
                 default:
                     throw new Exception($"Unexpected node: {node.Kind}");
             }
+        }
+
+        private BoundExpression RewriteObjectReferenceExpression(BoundObjectReferenceExpression node)
+        {
+            var boundName = RewriteExpression(node.BoundName);
+            if (boundName == node.BoundName)
+                return node;
+
+            return new BoundObjectReferenceExpression(node.Syntax, boundName, node.Field);
         }
 
         private BoundExpression RewriteFieldExpression(BoundFieldExpression node)

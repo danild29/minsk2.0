@@ -149,12 +149,27 @@ namespace Minsk.CodeAnalysis
                     return EvaluateCallExpression((BoundCallExpression)node);
                 case BoundNodeKind.ConversionExpression:
                     return EvaluateConversionExpression((BoundConversionExpression)node);
+                case BoundNodeKind.ObjectReferenceExpression:
+                    return EvaluateObjectReferenceExpression((BoundObjectReferenceExpression)node);
                 case BoundNodeKind.ObjectExpression:
                     return EvaluateObjectExpression((BoundObjectExpression)node);
 
                 default:
                     throw new Exception($"Unexpected node {node.Kind}");
             }
+        }
+
+        private object? EvaluateObjectReferenceExpression(BoundObjectReferenceExpression node)
+        {
+            var obj = (IEnumerable<(string, object)>)EvaluateExpression(node.BoundName);
+            if (obj == null) return "-1";
+
+            foreach ((string name, object value) in obj)
+            {
+                if (name == node.Field.Text)
+                    return value;
+            }
+            return -1;
         }
 
         private object? EvaluateObjectExpression(BoundObjectExpression node)

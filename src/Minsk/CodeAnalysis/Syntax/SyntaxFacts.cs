@@ -92,6 +92,8 @@ namespace Minsk.CodeAnalysis.Syntax
                     return SyntaxKind.WhileKeyword;
                 case "do":
                     return SyntaxKind.DoKeyword;
+                case "class":
+                    return SyntaxKind.ClassKeyword;
                 default:
                     return SyntaxKind.IdentifierToken;
             }
@@ -187,6 +189,8 @@ namespace Minsk.CodeAnalysis.Syntax
                     return ":";
                 case SyntaxKind.CommaToken:
                     return ",";
+                case SyntaxKind.DotToken:
+                    return ".";
                 case SyntaxKind.BreakKeyword:
                     return "break";
                 case SyntaxKind.ContinueKeyword:
@@ -215,6 +219,8 @@ namespace Minsk.CodeAnalysis.Syntax
                     return "while";
                 case SyntaxKind.DoKeyword:
                     return "do";
+                case SyntaxKind.ClassKeyword:
+                    return "class";
                 default:
                     return null;
             }

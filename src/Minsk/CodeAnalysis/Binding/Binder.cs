@@ -529,11 +529,20 @@ namespace Minsk.CodeAnalysis.Binding
                 case SyntaxKind.BinaryExpression:
                     return BindBinaryExpression((BinaryExpressionSyntax)syntax);
                 case SyntaxKind.CallExpression:
+                    return BindCallExpression((CallExpressionSyntax)syntax);
                 case SyntaxKind.ObjectExpression:
                     return BindObjectExpression((ObjectExpressionSyntax)syntax);
+                case SyntaxKind.ObjectReferenceExpression:
+                    return BindObjectReference((ObjectReferenceExpressionSyntax)syntax);
                 default:
                     throw new Exception($"Unexpected syntax {syntax.Kind}");
             }
+        }
+
+        private BoundExpression BindObjectReference(ObjectReferenceExpressionSyntax syntax)
+        {
+            var boundName = BindExpression(syntax.NameExpression);
+            return new BoundObjectReferenceExpression(syntax,  boundName, field: syntax.Identifier);
         }
 
         private BoundFieldExpression BindFieldExpression(FieldExpressionSyntax syntax)
@@ -831,37 +840,5 @@ namespace Minsk.CodeAnalysis.Binding
                     return null;
             }
         }
-    }
-
-    internal class BoundObjectExpression : BoundExpression
-    {
-        public BoundObjectExpression(SyntaxNode syntax, ImmutableArray<BoundFieldExpression> boundExpressions)
-            : base(syntax)
-        {
-            BoundExpressions = boundExpressions;
-        }
-
-        public ImmutableArray<BoundFieldExpression> BoundExpressions { get; }
-
-        public override TypeSymbol Type => TypeSymbol.Any;
-
-        public override BoundNodeKind Kind => BoundNodeKind.ObjectExpression;
-    }
-
-    internal class BoundFieldExpression : BoundExpression
-    {
-        public BoundFieldExpression(SyntaxNode syntax, FieldVariableSymbol variable, BoundExpression expression)
-            : base(syntax)
-        {
-            Variable = variable;
-            Expression = expression;
-        }
-
-        public FieldVariableSymbol Variable { get; }
-        public BoundExpression Expression { get; }
-
-        public override TypeSymbol Type => Expression.Type;
-
-        public override BoundNodeKind Kind => BoundNodeKind.FieldExpression;
     }
 }
