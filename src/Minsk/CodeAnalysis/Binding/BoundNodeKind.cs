@@ -29,5 +29,7 @@ namespace Minsk.CodeAnalysis.Binding
         ConversionExpression,
         ArrayExpression,
         ArrayIndexExpression,
+        FieldExpression,
+        ObjectExpression,
     }
 }

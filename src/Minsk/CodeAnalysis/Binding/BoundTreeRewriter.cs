@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Immutable;
+using System.Linq.Expressions;
 
 namespace Minsk.CodeAnalysis.Binding
 {
@@ -195,6 +196,10 @@ namespace Minsk.CodeAnalysis.Binding
                     return RewriteBinaryExpression((BoundBinaryExpression)node);
                 case BoundNodeKind.CallExpression:
                     return RewriteCallExpression((BoundCallExpression)node);
+                case BoundNodeKind.ObjectExpression:
+                    return RewriteObjectExpression((BoundObjectExpression)node);
+                case BoundNodeKind.FieldExpression:
+                    return RewriteFieldExpression((BoundFieldExpression)node);
                 case BoundNodeKind.ConversionExpression:
                     return RewriteConversionExpression((BoundConversionExpression)node);
                 default:
@@ -202,7 +207,26 @@ namespace Minsk.CodeAnalysis.Binding
             }
         }
 
-        private BoundExpression RewriteArrayIndexExpression(BoundArrayIndexExpression node)
+        private BoundExpression RewriteFieldExpression(BoundFieldExpression node)
+        {
+            var expression = RewriteExpression(node.Expression);
+            if (expression == node.Expression)
+                return node;
+
+            return new BoundFieldExpression(node.Syntax, node.Variable, expression);
+        }
+
+        protected BoundExpression RewriteObjectExpression(BoundObjectExpression node)
+        {
+            var builder = RewriteArrayOfExpressions(node.BoundExpressions);
+
+            if (builder == null)
+                return node;
+
+            return new BoundObjectExpression(node.Syntax, builder.MoveToImmutable());
+        }
+
+        protected BoundExpression RewriteArrayIndexExpression(BoundArrayIndexExpression node)
         {
             var expression = RewriteExpression(node.Expression);
             var variable = RewriteExpression(node.Variable);
@@ -213,28 +237,9 @@ namespace Minsk.CodeAnalysis.Binding
             return new BoundArrayIndexExpression(node.Syntax, node.Variable, expression);
         }
 
-        private BoundExpression RewriteArrayExpression(BoundArrayExpression node)
+        protected BoundExpression RewriteArrayExpression(BoundArrayExpression node)
         {
-            ImmutableArray<BoundExpression>.Builder? builder = null;
-
-            for (var i = 0; i < node.BoundItems.Length; i++)
-            {
-                var oldArgument = node.BoundItems[i];
-                var newArgument = RewriteExpression(oldArgument);
-                if (newArgument != oldArgument)
-                {
-                    if (builder == null)
-                    {
-                        builder = ImmutableArray.CreateBuilder<BoundExpression>(node.BoundItems.Length);
-
-                        for (var j = 0; j < i; j++)
-                            builder.Add(node.BoundItems[j]);
-                    }
-                }
-
-                if (builder != null)
-                    builder.Add(newArgument);
-            }
+            var builder = RewriteArrayOfExpressions(node.BoundItems);
 
             if (builder == null)
                 return node;
@@ -296,26 +301,7 @@ namespace Minsk.CodeAnalysis.Binding
 
         protected virtual BoundExpression RewriteCallExpression(BoundCallExpression node)
         {
-            ImmutableArray<BoundExpression>.Builder? builder = null;
-
-            for (var i = 0; i< node.Arguments.Length; i++)
-            {
-                var oldArgument = node.Arguments[i];
-                var newArgument = RewriteExpression(oldArgument);
-                if (newArgument != oldArgument)
-                {
-                    if (builder == null)
-                    {
-                        builder = ImmutableArray.CreateBuilder<BoundExpression>(node.Arguments.Length);
-
-                        for (var j = 0; j < i; j++)
-                            builder.Add(node.Arguments[j]);
-                    }
-                }
-
-                if (builder != null)
-                    builder.Add(newArgument);
-            }
+            var builder = RewriteArrayOfExpressions(node.Arguments);
 
             if (builder == null)
                 return node;
@@ -330,6 +316,32 @@ namespace Minsk.CodeAnalysis.Binding
                 return node;
 
             return new BoundConversionExpression(node.Syntax, node.Type, expression);
+        }
+
+        private ImmutableArray<T>.Builder? RewriteArrayOfExpressions<T>(ImmutableArray<T> expressions)
+            where T : BoundExpression
+        {
+            ImmutableArray<T>.Builder? builder = null;
+            for (var i = 0; i < expressions.Length; i++)
+            {
+                var oldArgument = expressions[i];
+                var newArgument = RewriteExpression(oldArgument);
+                if (newArgument != oldArgument)
+                {
+                    if (builder == null)
+                    {
+                        builder = ImmutableArray.CreateBuilder<T>(expressions.Length);
+
+                        for (var j = 0; j < i; j++)
+                            builder.Add(expressions[j]);
+                    }
+                }
+
+                if (builder != null)
+                    builder.Add((T)newArgument);
+            }
+
+            return builder;
         }
     }
 }

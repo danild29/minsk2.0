@@ -7,5 +7,6 @@ namespace Minsk.CodeAnalysis.Symbols
         LocalVariable,
         Parameter,
         Type,
+        FieldVariable,
     }
 }

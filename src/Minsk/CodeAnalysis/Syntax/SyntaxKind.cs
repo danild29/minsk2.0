@@ -97,5 +97,8 @@ namespace Minsk.CodeAnalysis.Syntax
         CallExpression,
         ArrayExpression,
         ArrayIndexExpression,
+        ClassKeyword,
+        FieldExpression,
+        ObjectExpression,
     }
 }

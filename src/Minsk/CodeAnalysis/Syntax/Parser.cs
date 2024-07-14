@@ -380,6 +380,12 @@ namespace Minsk.CodeAnalysis.Syntax
 
         private ExpressionSyntax ParseAssignmentExpression()
         {
+            if (Current.Kind == SyntaxKind.OpenBraceToken)
+            {
+                return ParseObjectInitializer();
+            }
+
+
             if (Peek(0).Kind == SyntaxKind.IdentifierToken)
             {
                 switch (Peek(1).Kind)
@@ -400,6 +406,44 @@ namespace Minsk.CodeAnalysis.Syntax
 
             }
             return ParseBinaryExpression();
+        }
+
+        private ExpressionSyntax ParseObjectInitializer()
+        {
+            var openBrace = NextToken();
+
+            var nodesAndSeparators = ImmutableArray.CreateBuilder<SyntaxNode>();
+
+            var parseNextArgument = true;
+            while (parseNextArgument &&
+                   Current.Kind != SyntaxKind.CloseParenthesisToken &&
+                   Current.Kind != SyntaxKind.EndOfFileToken)
+            {
+                var identifier = MatchToken(SyntaxKind.IdentifierToken);
+                var typeClause = ParseOptionalTypeClause();
+                var equals = MatchToken(SyntaxKind.EqualsToken);
+                var initializer = ParseExpression();
+                var field = new FieldExpressionSyntax(_syntaxTree, identifier, typeClause, equals, initializer);
+
+
+                nodesAndSeparators.Add(field);
+
+                if (Current.Kind == SyntaxKind.CommaToken)
+                {
+                    var comma = MatchToken(SyntaxKind.CommaToken);
+                    nodesAndSeparators.Add(comma);
+                }
+                else
+                {
+                    parseNextArgument = false;
+                }
+            }
+
+            var fields =  new SeparatedSyntaxList<FieldExpressionSyntax>(nodesAndSeparators.ToImmutable());
+
+            var closeBrace = MatchToken(SyntaxKind.CloseBraceToken);
+
+            return new ObjectExpressionSyntax(_syntaxTree, openBrace, fields, closeBrace);
         }
 
         private ExpressionSyntax ParseArrayIndexExpression()

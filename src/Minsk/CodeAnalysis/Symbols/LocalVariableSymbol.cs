@@ -12,4 +12,14 @@ namespace Minsk.CodeAnalysis.Symbols
         public override SymbolKind Kind => SymbolKind.LocalVariable;
     }
 
+    public class FieldVariableSymbol : VariableSymbol
+    {
+        internal FieldVariableSymbol(string name, TypeSymbol type, BoundConstant? constant)
+            : base(name, true, type, constant)
+        {
+        }
+
+        public override SymbolKind Kind => SymbolKind.FieldVariable;
+    }
+
 }

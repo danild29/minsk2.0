@@ -197,32 +197,54 @@ namespace Minsk
                 if (result.Value != null)
                 {
                     Console.ForegroundColor = ConsoleColor.White;
-
-                    if (result.Value is IEnumerable<object> array)
-                    {
-                        Console.Write("[");
-                        for (var i = 0; i < array.Count(); i++)
-                        {
-                            object item = array.ElementAt(i);
-                            Console.Write(item);
-
-                            if (i < array.Count() - 1)
-                            {
-                                Console.Write(",");
-                            }
-                        }
-
-                        Console.WriteLine("]");
-                    }
-                    else
-                    {
-                        Console.WriteLine(result.Value);
-                    }
+                    PrintResultToConsole(result);
                     Console.ResetColor();
                 }
                 _previous = compilation;
 
                 SaveSubmission(text);
+            }
+        }
+
+        private static void PrintResultToConsole(EvaluationResult result)
+        {
+            if (result.Value is IEnumerable<object> array)
+            {
+                Console.Write("[");
+                for (var i = 0; i < array.Count(); i++)
+                {
+                    object item = array.ElementAt(i);
+                    Console.Write(item);
+
+                    if (i < array.Count() - 1)
+                    {
+                        Console.Write(",");
+                    }
+                }
+
+                Console.WriteLine("]");
+            }
+            else if (result.Value is IEnumerable<(string, object)> obj)
+            {
+                Console.Write("{ ");
+                for (var i = 0; i < obj.Count(); i++)
+                {
+                    (string name, object value) = obj.ElementAt(i);
+                    Console.Write(name);
+                    Console.Write(" : ");
+                    Console.Write(value);
+
+                    if (i < obj.Count() - 1)
+                    {
+                        Console.Write(" , ");
+                    }
+                }
+
+                Console.WriteLine(" }");
+            }
+            else
+            {
+                Console.WriteLine(result.Value);
             }
         }
 

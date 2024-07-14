@@ -529,10 +529,34 @@ namespace Minsk.CodeAnalysis.Binding
                 case SyntaxKind.BinaryExpression:
                     return BindBinaryExpression((BinaryExpressionSyntax)syntax);
                 case SyntaxKind.CallExpression:
-                    return BindCallExpression((CallExpressionSyntax)syntax);
+                case SyntaxKind.ObjectExpression:
+                    return BindObjectExpression((ObjectExpressionSyntax)syntax);
                 default:
                     throw new Exception($"Unexpected syntax {syntax.Kind}");
             }
+        }
+
+        private BoundFieldExpression BindFieldExpression(FieldExpressionSyntax syntax)
+        {
+            var type = BindTypeClause(syntax.TypeClause);
+            var initializer = BindExpression(syntax.Initializer);
+            var variableType = type ?? initializer.Type;
+            var variable = BindFieldDeclaration(syntax.Identifier, variableType, initializer.ConstantValue);
+            var convertedInitializer = BindConversion(syntax.Initializer.Location, initializer, variableType);
+            return new BoundFieldExpression(syntax, variable, convertedInitializer);
+        }
+
+        private BoundExpression BindObjectExpression(ObjectExpressionSyntax syntax)
+        {
+            var boundArguments = ImmutableArray.CreateBuilder<BoundFieldExpression>();
+
+            foreach (var argument in syntax.Fields)
+            {
+                var boundArgument = BindFieldExpression(argument);
+                boundArguments.Add(boundArgument);
+            }
+
+            return new BoundObjectExpression(syntax, boundArguments.ToImmutable());
         }
 
         private BoundExpression BindArrayIndexExpression(ArrayIndexExpressionSyntax syntax)
@@ -553,9 +577,6 @@ namespace Minsk.CodeAnalysis.Binding
 
         private BoundExpression BindArrayExpression(ArrayExpressionSyntax syntax)
         {
-            var list = syntax.SyntaxNodes.OfType<LiteralExpressionSyntax>()
-                                                                .Select(x => x.Value);
-
             var boundArguments = ImmutableArray.CreateBuilder<BoundExpression>();
 
             foreach (var argument in syntax.SyntaxNodes)
@@ -787,6 +808,11 @@ namespace Minsk.CodeAnalysis.Binding
             }
         }
 
+        private FieldVariableSymbol BindFieldDeclaration(SyntaxToken identifierToken, TypeSymbol type, BoundConstant? constant = null)
+        {
+            return new FieldVariableSymbol(identifierToken.Text, type, constant);
+        }
+
         private TypeSymbol? LookupType(string name)
         {
             switch (name)
@@ -805,5 +831,37 @@ namespace Minsk.CodeAnalysis.Binding
                     return null;
             }
         }
+    }
+
+    internal class BoundObjectExpression : BoundExpression
+    {
+        public BoundObjectExpression(SyntaxNode syntax, ImmutableArray<BoundFieldExpression> boundExpressions)
+            : base(syntax)
+        {
+            BoundExpressions = boundExpressions;
+        }
+
+        public ImmutableArray<BoundFieldExpression> BoundExpressions { get; }
+
+        public override TypeSymbol Type => TypeSymbol.Any;
+
+        public override BoundNodeKind Kind => BoundNodeKind.ObjectExpression;
+    }
+
+    internal class BoundFieldExpression : BoundExpression
+    {
+        public BoundFieldExpression(SyntaxNode syntax, FieldVariableSymbol variable, BoundExpression expression)
+            : base(syntax)
+        {
+            Variable = variable;
+            Expression = expression;
+        }
+
+        public FieldVariableSymbol Variable { get; }
+        public BoundExpression Expression { get; }
+
+        public override TypeSymbol Type => Expression.Type;
+
+        public override BoundNodeKind Kind => BoundNodeKind.FieldExpression;
     }
 }
