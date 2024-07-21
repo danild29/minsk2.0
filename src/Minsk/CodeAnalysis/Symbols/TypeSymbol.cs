@@ -1,6 +1,8 @@
+using System.Collections.Generic;
+
 namespace Minsk.CodeAnalysis.Symbols
 {
-    public sealed class TypeSymbol  : Symbol
+    public class TypeSymbol  : Symbol
     {
         public static readonly TypeSymbol Error = new TypeSymbol("?");
         public static readonly TypeSymbol Any = new TypeSymbol("any");
@@ -10,7 +12,7 @@ namespace Minsk.CodeAnalysis.Symbols
         public static readonly TypeSymbol Void = new TypeSymbol("void");
         public static readonly TypeSymbol Array = new TypeSymbol("array");
 
-        private TypeSymbol(string name)
+        public TypeSymbol(string name)
             : base(name)
         {
         }

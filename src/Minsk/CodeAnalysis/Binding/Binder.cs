@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Numerics;
+using System.Xml.Linq;
 using Minsk.CodeAnalysis.Lowering;
 using Minsk.CodeAnalysis.Symbols;
 using Minsk.CodeAnalysis.Syntax;
@@ -539,10 +541,28 @@ namespace Minsk.CodeAnalysis.Binding
             }
         }
 
-        private BoundExpression BindObjectReference(ObjectReferenceExpressionSyntax syntax)
+        private BoundExpression BindObjectExpression(ObjectExpressionSyntax syntax)
         {
-            var boundName = BindExpression(syntax.NameExpression);
-            return new BoundObjectReferenceExpression(syntax,  boundName, field: syntax.Identifier);
+            var boundFields = ImmutableArray.CreateBuilder<BoundFieldExpression>();
+
+            foreach (var field in syntax.Fields)
+            {
+                var boundArgument = BindFieldExpression(field);
+                boundFields.Add(boundArgument);
+            }
+
+            var classDeclaration = syntax.Fields.Select(x => new TypedName(x.Identifier, BindTypeClause(x.TypeClause) ?? (x.Initializer is ObjectExpressionSyntax obj ? BindObjectExpression(obj).Type : TypeSymbol.Any)));
+            var duplicates = classDeclaration.Select(x => x.Name.Text).GroupBy(x => x);
+
+            if (duplicates.Any(x => x.Count() > 1))
+            {
+                var duplicate = duplicates.First(x => x.Count() > 1).Skip(1).First();
+                _diagnostics.ReportTypeAlreadyContainsField(classDeclaration.First().Name.Location, "anonymus", duplicate);
+            }
+
+            var type = TypeManager.Create( classDeclaration);
+
+            return new BoundObjectExpression(syntax, boundFields.ToImmutable(), type);
         }
 
         private BoundFieldExpression BindFieldExpression(FieldExpressionSyntax syntax)
@@ -555,17 +575,34 @@ namespace Minsk.CodeAnalysis.Binding
             return new BoundFieldExpression(syntax, variable, convertedInitializer);
         }
 
-        private BoundExpression BindObjectExpression(ObjectExpressionSyntax syntax)
+        private BoundExpression BindObjectReference(ObjectReferenceExpressionSyntax syntax)
         {
-            var boundArguments = ImmutableArray.CreateBuilder<BoundFieldExpression>();
+            var boundName = BindExpression(syntax.NameExpression);
+            var fieldNames = ImmutableArray.CreateBuilder<TypedName>();
 
-            foreach (var argument in syntax.Fields)
+            if (boundName.Kind != BoundNodeKind.ErrorExpression) //already added to diagnostic when variable was not found
             {
-                var boundArgument = BindFieldExpression(argument);
-                boundArguments.Add(boundArgument);
+                var complex = (ComplexTypeSymbol)boundName.Type;
+
+                for (int i = 1; i < syntax.Nodes.Length; i += 2)
+                {
+                    var node = syntax.Nodes[i];
+                    var field  = complex.GetField(node.Text).SingleOrDefault();
+
+                    if (field == null)
+                    {
+                        _diagnostics.ReportNotAField(node.Location, node.Text);
+                        break;
+                    }
+
+                    fieldNames.Add(field);
+
+                    complex = field.Type as ComplexTypeSymbol;
+                }
             }
 
-            return new BoundObjectExpression(syntax, boundArguments.ToImmutable());
+
+            return new BoundObjectReferenceExpression(syntax,  boundName, fieldNames.ToImmutable());
         }
 
         private BoundExpression BindArrayIndexExpression(ArrayIndexExpressionSyntax syntax)
@@ -824,6 +861,11 @@ namespace Minsk.CodeAnalysis.Binding
 
         private TypeSymbol? LookupType(string name)
         {
+            if(TypeManager.Types.TryGetValue(name, out var type))
+            {
+                return type;
+            }
+
             switch (name)
             {
                 case "any":

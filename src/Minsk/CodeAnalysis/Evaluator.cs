@@ -161,29 +161,41 @@ namespace Minsk.CodeAnalysis
 
         private object? EvaluateObjectReferenceExpression(BoundObjectReferenceExpression node)
         {
-            var obj = (IEnumerable<(string, object)>)EvaluateExpression(node.BoundName);
-            if (obj == null) return "-1";
+            var obj = (ObjectsInstance)EvaluateExpression(node.BoundName);
 
-            foreach ((string name, object value) in obj)
+            for (int i = 0; i < node.TypedNames.Count(); i++)
             {
-                if (name == node.Field.Text)
-                    return value;
+                TypedName? item = node.TypedNames[i];
+
+                if (i == node.TypedNames.Count() - 1)
+                {
+                    return obj.GetValue(item.Name.Text);
+                }
+
+                obj = (ObjectsInstance)obj.GetValue(item.Name.Text);
             }
-            return -1;
+
+            return obj;
         }
 
         private object? EvaluateObjectExpression(BoundObjectExpression node)
         {
-            List<(string, object)> fields = new List<(string, object)> ();
+            var type = (ComplexTypeSymbol)node.Type;
+
+            ArgumentNullException.ThrowIfNull(type);
+
+            var objects = new List<object>();
+
             foreach (var item in node.BoundExpressions)
             {
-                var name = item.Variable.Name;
                 var value = EvaluateExpression(item.Expression);
-                fields.Add((name, value));
+                objects.Add(value);
             }
 
-            return fields.ToArray();
+            return new ObjectsInstance(type, objects);
         }
+
+        
 
         private object? EvaluateArrayExpression(BoundArrayExpression node)
         {

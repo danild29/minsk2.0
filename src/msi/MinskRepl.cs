@@ -5,6 +5,7 @@ using System.Linq;
 
 using Minsk.CodeAnalysis;
 using Minsk.CodeAnalysis.Authoring;
+using Minsk.CodeAnalysis.Binding;
 using Minsk.CodeAnalysis.Symbols;
 using Minsk.CodeAnalysis.Syntax;
 using Minsk.IO;
@@ -93,6 +94,7 @@ namespace Minsk
         {
             _previous = null;
             _variables.Clear();
+            TypeManager.Types.Clear();
             ClearSubmissions();
         }
 
@@ -135,6 +137,16 @@ namespace Minsk
             foreach (var symbol in symbols)
             {
                 symbol.WriteTo(Console.Out);
+                Console.WriteLine();
+            }
+        }
+
+        [MetaCommand("types", "Lists all types")]
+        private void EvaluateTypes()
+        {
+            foreach (var symbol in TypeManager.Types)
+            {
+                symbol.Value.WriteTo(Console.Out);
                 Console.WriteLine();
             }
         }
@@ -197,7 +209,8 @@ namespace Minsk
                 if (result.Value != null)
                 {
                     Console.ForegroundColor = ConsoleColor.White;
-                    PrintResultToConsole(result);
+                    PrintResultToConsole(result.Value);
+                    Console.WriteLine();
                     Console.ResetColor();
                 }
                 _previous = compilation;
@@ -206,9 +219,9 @@ namespace Minsk
             }
         }
 
-        private static void PrintResultToConsole(EvaluationResult result)
+        private static void PrintResultToConsole(object value)
         {
-            if (result.Value is IEnumerable<object> array)
+            if (value is IEnumerable<object> array)
             {
                 Console.Write("[");
                 for (var i = 0; i < array.Count(); i++)
@@ -222,29 +235,30 @@ namespace Minsk
                     }
                 }
 
-                Console.WriteLine("]");
+                Console.Write("]");
             }
-            else if (result.Value is IEnumerable<(string, object)> obj)
+            else if (value is ObjectsInstance obj)
             {
                 Console.Write("{ ");
-                for (var i = 0; i < obj.Count(); i++)
+                var model = obj.Fields.Zip(obj.Objects);
+                for (var i = 0; i < model.Count(); i++)
                 {
-                    (string name, object value) = obj.ElementAt(i);
+                    (string name , object val) = model.ElementAt(i);
                     Console.Write(name);
                     Console.Write(" : ");
-                    Console.Write(value);
+                    PrintResultToConsole(val);
 
-                    if (i < obj.Count() - 1)
+                    if (i < model.Count() - 1)
                     {
                         Console.Write(" , ");
                     }
                 }
 
-                Console.WriteLine(" }");
+                Console.Write(" }");
             }
             else
             {
-                Console.WriteLine(result.Value);
+                Console.Write(value);
             }
         }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using Minsk.CodeAnalysis.Symbols;
 using Minsk.CodeAnalysis.Syntax;
 using Minsk.CodeAnalysis.Text;
@@ -91,6 +92,12 @@ namespace Minsk.CodeAnalysis
         public void ReportNotAVariable(TextLocation location, string name)
         {
             var message = $"'{name}' is not a variable.";
+            ReportError(location, message);
+        }
+
+        public void ReportNotAField(TextLocation location, string name)
+        {
+            var message = $"'{name}' is not a field.";
             ReportError(location, message);
         }
 
@@ -213,6 +220,12 @@ namespace Minsk.CodeAnalysis
             ReportError(default, message);
         }
 
+        internal void ReportTypeAlreadyContainsField(TextLocation location, string typeName, string identifier)
+        {
+            string message = $"The type '{typeName}' already contains a definition for '{identifier}'";
+            ReportError(default, message);
+        }
+
         public void ReportRequiredTypeNotFound(string? minskName, string metadataName)
         {
             var message = minskName == null
@@ -289,5 +302,6 @@ namespace Minsk.CodeAnalysis
                     throw new Exception($"Unexpected syntax {node.Kind}");
             }
         }
+
     }
 }

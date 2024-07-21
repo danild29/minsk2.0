@@ -411,10 +411,16 @@ namespace Minsk.CodeAnalysis.Syntax
         private ExpressionSyntax ParseObjectReference()
         {
             var nameExpression = ParseNameExpression();
-            var dotToken = NextToken();
-            var identifier = MatchToken(SyntaxKind.IdentifierToken);
 
-            return new ObjectReferenceExpressionSyntax(_syntaxTree, nameExpression, dotToken, identifier);
+            var builder = ImmutableArray.CreateBuilder<SyntaxToken>();
+            do
+            {
+                builder.Add(MatchToken(SyntaxKind.DotToken));
+                builder.Add(MatchToken(SyntaxKind.IdentifierToken));
+            }
+            while (Current.Kind == SyntaxKind.DotToken);
+
+            return new ObjectReferenceExpressionSyntax(_syntaxTree, nameExpression, builder.ToImmutable());
         }
 
         private ExpressionSyntax ParseObjectInitializer()
@@ -596,7 +602,7 @@ namespace Minsk.CodeAnalysis.Syntax
             return new SeparatedSyntaxList<ExpressionSyntax>(nodesAndSeparators.ToImmutable());
         }
 
-        private ExpressionSyntax ParseNameExpression()
+        private NameExpressionSyntax ParseNameExpression()
         {
             var identifierToken = MatchToken(SyntaxKind.IdentifierToken);
             return new NameExpressionSyntax(_syntaxTree, identifierToken);

@@ -215,7 +215,7 @@ namespace Minsk.CodeAnalysis.Binding
             if (boundName == node.BoundName)
                 return node;
 
-            return new BoundObjectReferenceExpression(node.Syntax, boundName, node.Field);
+            return new BoundObjectReferenceExpression(node.Syntax, boundName, node.TypedNames);
         }
 
         private BoundExpression RewriteFieldExpression(BoundFieldExpression node)
@@ -234,7 +234,7 @@ namespace Minsk.CodeAnalysis.Binding
             if (builder == null)
                 return node;
 
-            return new BoundObjectExpression(node.Syntax, builder.MoveToImmutable());
+            return new BoundObjectExpression(node.Syntax, builder.MoveToImmutable(), node.Type);
         }
 
         protected BoundExpression RewriteArrayIndexExpression(BoundArrayIndexExpression node)
